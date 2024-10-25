@@ -1,0 +1,1 @@
+ReAct prompting, short for Reasoning and Acting, is an advanced technique used in AI models to improve decision-making by combining structured reasoning with actionable steps. Unlike traditional prompts that focus purely on generating answers, ReAct prompting engages the model in a multi-step process that mirrors human problem-solving.
