@@ -15,8 +15,12 @@ def execute(client, messages: list, generation_config={"temperature":0}) -> str:
     response = client.generate_content(contents=messages, generation_config=generation_config) 
     return response.text
 
+def add_tag_to_text(text, tag):
 
-def create_single_text_Content(role, text):
+    results = f"<{tag}>{text}</{tag}>"
+    return results
+
+def create_single_text_Content(role, text, added_tag=None):
     '''
     Create a Content object for history, containing only one part, which is a text
     Args:
@@ -24,10 +28,13 @@ def create_single_text_Content(role, text):
         text: the content
     Return: Content
     '''
+    if added_tag:
+        text=add_tag_to_text(text,added_tag)
+    
     return Content(role=role, parts=[Part.from_text(text)])
     
 
-def update_chat_history(history: list, msg: str, role: str):
+def update_chat_history(history: list, msg: str, role: str, added_tag=None):
     """
     Updates the chat history by appending the latest response.
 
@@ -36,7 +43,7 @@ def update_chat_history(history: list, msg: str, role: str):
         msg (str): The message to append.
         role (str): The role type ('user' or 'model')
     """
-    history.append(create_single_text_Content(text=msg, role=role))
+    history.append(create_single_text_Content(text=msg, role=role, added_tag=added_tag))
 
 
 class ChatHistory(list):
