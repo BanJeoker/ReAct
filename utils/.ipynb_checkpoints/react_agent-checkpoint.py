@@ -74,9 +74,11 @@ Additional constraints:
 - If the user asks you something unrelated to any of the tools above, answer the question freely using your own knowledge, enclosing your answer with <answer></answer> tags.
 """
 
-def print_in_color(text, color, escape=False):
+def print_in_color(text, color, escape=False, bold=False):
     if escape:
         text = html.escape(text)
+    if bold:
+        text = f"<b>{text}</b>"
     display(HTML(f'<span style="color: {color};">{text}</span>'))
     
 class ReactAgent:
@@ -124,7 +126,7 @@ class ReactAgent:
 
             # get the parased tool name
             tool_name = tool_call["name"]            
-            print_in_color(text=f"\n Parsed Tool is: {tool_name}", color='green')
+            print_in_color(text=f"\n Parsed Tool is: {tool_name}", color='green', bold=True)
             
             # get the actual tool, the physical existing function
             actual_tool = self.tools_dict[tool_name]
@@ -139,7 +141,7 @@ class ReactAgent:
             result = actual_tool.run(**validated_tool_call["arguments"])
             
             
-            # add the result to the observations map using id, because there might be multiple tools to execute
+            # add the result to the observations map using id, because there might be multiple tools to execute; the result can be of different types of objects, most commonly string. But in the case of returning the who pdf, a Part object read from from_data() method can also be expected.
             observations[validated_tool_call["id"]] = result
 
         return observations
@@ -168,26 +170,43 @@ class ReactAgent:
             print('-'*40,f'iteration {i} ', '-'*40)
             response = execute(self.client, messages=chat_history)   
             
-            print_in_color(text="thought and action\n:"+str(response), color='red', escape=True)     
+            # print thought and action
+            print_in_color(text="Thought and Action", color='red', escape=True, bold=True) 
+            print_in_color(text=str(response), color='red', escape=True)     
             
+            # parse the answer, if answer is present
             answer = extract_tag_content(str(response), "answer")
             if answer.found:
                 return answer.content[0]
             
-            # thought = extract_tag_content(str(response), "thought")
+            # parse the actions
             tool_calls = extract_tag_content(str(response), "tool_call")
             update_chat_history(history=chat_history, msg=response, role="model")
             
+            # execute the actions and returns the observation
             if tool_calls.found:
+                
+                # execute the function, returned results are observations
                 observations = self.process_tool_calls(tool_calls.content)
-                print_in_color(text=f"observation:\n", color='blue')
+                print_in_color(text=f"Observation", color='blue', bold=True)
+                
+                # print the observations
+                msg_type='observation_regular_printable'
                 for observation in observations.values():
-                    print(observation)
-                update_chat_history(history=chat_history, msg=observations, role="user", added_tag='observation')
-            else:
+                    # the executed results can be of many types, depends on the specific function used
+                    if isinstance(observation, Part): # edge case
+                        msg_type='observation_part'
+                        print('observation is non-printable Part object, probably the full pdf')
+                    else: 
+                        print(observation)
+                        
+                # update the chat history with the newest observations
+                update_chat_history(history=chat_history, msg=observations, role="user", added_tag='observation', msg_type=msg_type)
+                
+            else: #if tool not found
                 temp_msg="\nObservations: tool not found, think again, choose another tool"
-                print_in_color(text=f"{temp_msg}", color='blue')
+                print_in_color(text=f"{temp_msg}", color='blue', bold=True)
                 update_chat_history(history=chat_history, msg=temp_msg, role="user", added_tag='observation')
                         
-        print("max iterations reached")
+        print("max iterations reached", '!'*10)
         return chat_history
