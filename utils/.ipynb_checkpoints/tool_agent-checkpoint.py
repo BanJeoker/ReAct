@@ -1,4 +1,4 @@
-from vertexai.generative_models import GenerationConfig, GenerativeModel, Content, GenerativeModel, Part  
+from vertexai.generative_models import GenerationConfig, GenerativeModel, Content, Part  
 from google.cloud import aiplatform  
 from IPython.display import Markdown,display,HTML
 import sys
@@ -46,9 +46,9 @@ def print_in_color(text, color):
 
 class ToolAgent:
     
-    def __init__(self, tools: Tool | list[Tool], print_system_prompt=False) -> None:
+    def __init__(self, tools: Tool | list[Tool], print_system_prompt=False, model="gemini-1.5-pro-002") -> None:
         
-        self.client = GenerativeModel("gemini-1.5-pro-002")
+        self.client = GenerativeModel(model)
         self.tools = tools if isinstance(tools, list) else [tools]
         self.tools_dict = {tool.name: tool for tool in self.tools}
         self.print_system_prompt=print_system_prompt
@@ -77,6 +77,7 @@ class ToolAgent:
         
         for tool_call_str in tool_calls_content:
             
+            # json.loads() will automatically convert JSON-formatted strings to their respective Python data types, including converting strings containing numbers into int or float.
             tool_call = json.loads(tool_call_str)
 
             # get the parased tool name
