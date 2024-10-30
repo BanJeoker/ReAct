@@ -7,6 +7,7 @@ import os
 import importlib
 import math
 import html
+import time
 
 sys.path.append(os.path.abspath('../utils'))
 
@@ -51,7 +52,7 @@ Example session number 1:
 <tool_call>{"name": "get_current_weather","arguments": {"location": "Madrid", "unit": "celsius"}, "id": 0}</tool_call>
 You will be called again with this:
 <observation>{0: {"Retrieved data": f"the temperature is 25 Celsius"}}</observation>
-Now you have the answer, you then output:
+Now, based on the observation, you have the answer, you then output:
 <answer>The current temperature in Madrid is 25 degrees Celsius</answer>
 
 Example session number 2:
@@ -65,13 +66,15 @@ You then run another iteration:
 <tool_call>{"name": "search","arguments": {"query": "Apple Inc buisness composition"}, "id": 0}</tool_call>
 You will be called again with this:
 <observation>{0: {"Retrieved data": "Apple's business composition includes iPhone: Major revenue driver. Mac: Laptops and desktops......"}}</observation>
-Now you have the answer, you then output:
+Now, based on the observation, you have the answer, you then output:
 <answer>Apple's financial performance is strong with a total revenue of 123,456, which is drived by iPhone sales.</response>
 
 
 Additional constraints:
+- You do not output <observation></observation> tags, observations are provided to you.
+- Always enclosing your answer with <answer></answer> tags.
+- You are running in a loop, so do not give up so easily by saying you cannot answer the quetsion. 
 
-- If the user asks you something unrelated to any of the tools above, answer the question freely using your own knowledge, enclosing your answer with <answer></answer> tags.
 """
 
 def print_in_color(text, color, escape=False, bold=False):
@@ -146,7 +149,7 @@ class ReactAgent:
 
         return observations
             
-    def run(self, user_msg: str, max_iterations: int = 10,) -> str:
+    def run(self, query: str, max_iterations: int = 10,) -> str:
                         
         chat_history = ChatHistory(
             [
@@ -156,7 +159,7 @@ class ReactAgent:
                     
                 ),
                 create_single_text_Content(
-                    text=user_msg, 
+                    text=query, 
                     role="user",
                     added_tag='question'
                 ),
@@ -207,6 +210,7 @@ class ReactAgent:
                 temp_msg="\nObservations: tool not found, think again, choose another tool"
                 print_in_color(text=f"{temp_msg}", color='blue', bold=True)
                 update_chat_history(history=chat_history, msg=temp_msg, role="user", added_tag='observation')
+            time.sleep(2)
                         
         print("max iterations reached", '!'*10)
         return chat_history
