@@ -159,3 +159,31 @@ def convert_json_to_jsonl(pdf_json, fileName, fileNum, bucket_name, output_path)
     bucket = storage_client.get_bucket(bucket_name)
     blob = bucket.blob(output_path)
     blob.upload_from_string(jsonl_output_file, content_type="application/json")
+    
+    
+def read_jsonl_to_json_list(bucket_name, prefix):
+    
+    storage_client = storage.Client()
+    blobs = storage_client.list_blobs(bucket_name, prefix=prefix)
+    for blob in blobs:
+        if blob.content_type != "application/json":
+            continue
+
+        if blob.name.endswith(".json"):
+            continue
+        print(f"current file name: {blob.name}")    
+
+
+        blob_bytes = blob.download_as_bytes()
+        jsonl_content = blob_bytes.decode('utf-8')
+        json_lines = jsonl_content.strip().split('\n')
+
+        json_list=[]
+        for line in json_lines:
+            if line:  # Ensure the line is not empty
+                json_object = json.loads(line)
+                json_list.append(json_object)
+    
+    return json_list
+    
+    
