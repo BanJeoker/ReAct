@@ -5,9 +5,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
+from langchain.schema import Document
+
 
 class RAG:
-    def __init__(self, pdf_path, chunking_method, faiss_vector_store=None):
+    def __init__(self, pdf_path, chunking_method, faiss_vector_store=None, input_chunks=None):
         '''
         pdf_path: path to the PDF files
         chunking_method: name of the chunking method
@@ -15,8 +17,13 @@ class RAG:
         # save a copy of the original text using PyPDF2
         self.text = self.read_pdf(pdf_path)
         
-        # get the chunk, we do not use "self.text" directly becuase some methods, like the unstrucutre pacakge, starts from reading the path directly.
-        self.chunks=self.get_chunks(pdf_path, chunking_method)
+        self.chunks=None
+        if input_chunks:
+            self.chunks=[Document(page_content=chunk) for chunk in input_chunks]
+        else:
+            # get the chunk, we do not use "self.text" directly becuase some methods, like the unstrucutre pacakge, starts from reading the file path directly.
+            self.chunks=self.get_chunks(pdf_path, chunking_method)
+            
         self.embedding_model = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
         
         # initialize different retriever, including faiss_retriever and bm25_retriever
@@ -61,7 +68,7 @@ class RAG:
         return text
     
 
-    def search(self, query, method):
+    def search(self, query, method, num_top_chunks=3):
         
         '''
         search function
@@ -72,7 +79,7 @@ class RAG:
             documents=self.ensemble_retriever.invoke(input=query)
             text=""
             # return the top 3 chunks connected together
-            for d in documents[:3]:
+            for d in documents[:num_top_chunks]:
                 text+=d.page_content
             return text
         
