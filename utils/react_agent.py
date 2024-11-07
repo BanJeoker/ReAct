@@ -84,6 +84,33 @@ def print_in_color(text, color, escape=False, bold=False):
         text = f"<b>{text}</b>"
     display(HTML(f'<span style="color: {color};">{text}</span>'))
     
+def color_box(text, color, title):
+    
+    text_color='black'
+    color_dict={
+        'red': ["rgba(255, 0, 0, 0.1)", "rgba(255, 0, 0, 0.9)","red"],
+        'blue': ["rgba(56, 113, 224, 0.1)", "rgba(56, 113, 224, 0.9)","blue"],
+        'green': ["rgba(0, 255, 0, 0.1)", "rgba(0, 255, 0, 0.9)","green"]
+    }
+    
+    background_color=color_dict[color][0]
+    border_color=color_dict[color][1]
+    title_color=color_dict[color][2]
+    html = f"""
+    <div style="
+        padding: 5px;
+        border-radius: 5px;
+        color: {text_color};
+        background-color: {background_color};
+        border: 2px solid {border_color};
+        font-size: 13px;
+    ">
+    <strong style="color: {title_color}; font-size: 20px;">{title}</strong><br>
+    <pre style="font-family: inherit; font-size: inherit; color: {text_color}; background: transparent; margin: 0;">{text}</pre>
+    </div>
+    """
+    return HTML(html)
+    
 class ReactAgent:
     """
     A class that represents an agent using the ReAct logic that interacts with tools to process
@@ -128,8 +155,9 @@ class ReactAgent:
             tool_call = json.loads(tool_call_str)
 
             # get the parased tool name
-            tool_name = tool_call["name"]            
-            print_in_color(text=f"\n Parsed Tool is: {tool_name}", color='green', bold=True)
+            tool_name = tool_call["name"]   
+            
+            # print_in_color(text=f"\n Parsed Tool is: {tool_name}", color='green', bold=True)
             
             # get the actual tool, the physical existing function
             actual_tool = self.tools_dict[tool_name]
@@ -138,7 +166,9 @@ class ReactAgent:
             validated_tool_call = validate_arguments(
                 tool_call, json.loads(actual_tool.fn_signature)
             )
-            print_in_color(text=f"\n Tool calling details: \n{validated_tool_call}", color='green')
+            
+            # print_in_color(text=f"\n Tool calling details: \n{validated_tool_call}", color='green')
+            display(color_box(f"Tool calling details: \n{validated_tool_call}", color='green',title=f'Parsed Tool is: {tool_name}'))
 
             # run the tool
             result = actual_tool.run(**validated_tool_call["arguments"])
@@ -174,8 +204,10 @@ class ReactAgent:
             response = execute(self.client, messages=chat_history)   
             
             # print thought and action
-            print_in_color(text="Thought and Action", color='red', escape=True, bold=True) 
-            print_in_color(text=str(response), color='red', escape=True)     
+            # print_in_color(text="Thought and Action", color='red', escape=True, bold=True) 
+            # print_in_color(text=str(response), color='red', escape=True) 
+            
+            display(color_box(text=str(response), color='red',title='Thought and Action'))
             
             # parse the answer, if answer is present
             answer = extract_tag_content(str(response), "answer")
@@ -191,7 +223,7 @@ class ReactAgent:
                 
                 # execute the function, returned results are observations
                 observations = self.process_tool_calls(tool_calls.content)
-                print_in_color(text=f"Observation", color='blue', bold=True)
+                # print_in_color(text=f"Observation", color='blue', bold=True)
                 
                 # print the observations
                 msg_type='observation_regular_printable'
@@ -199,16 +231,18 @@ class ReactAgent:
                     # the executed results can be of many types, depends on the specific function used
                     if isinstance(observation, Part): # edge case
                         msg_type='observation_part'
-                        print('observation is non-printable Part object, probably the full pdf')
+                        # print('observation is non-printable Part object, probably the full pdf')
+                        display(color_box(text='observation is non-printable Part object, probably the full pdf', color='blue',title='Observation'))
                     else: 
-                        print(observation)
+                        display(color_box(text=observation, color='blue',title='Observation'))
                         
                 # update the chat history with the newest observations
                 update_chat_history(history=chat_history, msg=observations, role="user", added_tag='observation', msg_type=msg_type)
                 
             else: #if tool not found
                 temp_msg="\nObservations: tool not found, think again, choose another tool"
-                print_in_color(text=f"{temp_msg}", color='blue', bold=True)
+                # print_in_color(text=f"{temp_msg}", color='blue', bold=True)
+                display(color_box(text=temp_msg, color='blue',title='Observation'))
                 update_chat_history(history=chat_history, msg=temp_msg, role="user", added_tag='observation')
             time.sleep(2)
                         
