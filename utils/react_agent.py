@@ -72,31 +72,23 @@ Now, based on the observation, you have the answer, you then output:
 
 Additional constraints:
 - You do not output <observation></observation> tags, observations are provided to you.
-- Always enclosing your answer with <answer></answer> tags.
-- You are running in a loop, so do not give up so easily by saying you cannot answer the quetsion. 
-
+- When you have the answer, always enclosing your answer with <answer></answer> tags.
+- You are running in a infinite loop, so do not give up so easily by saying you cannot answer the quetsion. Keep using the tools provided for you to find solutions.
 """
 
-def print_in_color(text, color, escape=False, bold=False):
-    if escape:
-        text = html.escape(text)
-    if bold:
-        text = f"<b>{text}</b>"
-    display(HTML(f'<span style="color: {color};">{text}</span>'))
-    
 def color_box(text, color, title):
     
     text_color='black'
     color_dict={
         'red': ["rgba(255, 0, 0, 0.1)", "rgba(255, 0, 0, 0.9)","red"],
         'blue': ["rgba(56, 113, 224, 0.1)", "rgba(56, 113, 224, 0.9)","blue"],
-        'green': ["rgba(0, 255, 0, 0.1)", "rgba(0, 255, 0, 0.9)","green"]
+        'green': ["rgba(0, 255, 0, 0.1)", "green","green"]
     }
     
     background_color=color_dict[color][0]
     border_color=color_dict[color][1]
     title_color=color_dict[color][2]
-    html = f"""
+    html_box = f"""
     <div style="
         padding: 5px;
         border-radius: 5px;
@@ -106,10 +98,10 @@ def color_box(text, color, title):
         font-size: 13px;
     ">
     <strong style="color: {title_color}; font-size: 20px;">{title}</strong><br>
-    <pre style="font-family: inherit; font-size: inherit; color: {text_color}; background: transparent; margin: 0;">{text}</pre>
+    <pre style="font-family: inherit; font-size: inherit; color: {text_color}; background: transparent; margin: 0;">{html.escape(text)}</pre>
     </div>
     """
-    return HTML(html)
+    return HTML(html_box)
     
 class ReactAgent:
     """
@@ -127,6 +119,7 @@ class ReactAgent:
         if system_prompt:
             self.system_prompt=system_prompt
         self.print_system_prompt=print_system_prompt
+        self.chat_history=None
             
     def add_tool_signatures(self) -> str:
         """
@@ -157,7 +150,6 @@ class ReactAgent:
             # get the parased tool name
             tool_name = tool_call["name"]   
             
-            # print_in_color(text=f"\n Parsed Tool is: {tool_name}", color='green', bold=True)
             
             # get the actual tool, the physical existing function
             actual_tool = self.tools_dict[tool_name]
@@ -167,7 +159,6 @@ class ReactAgent:
                 tool_call, json.loads(actual_tool.fn_signature)
             )
             
-            # print_in_color(text=f"\n Tool calling details: \n{validated_tool_call}", color='green')
             display(color_box(f"Tool calling details: \n{validated_tool_call}", color='green',title=f'Parsed Tool is: {tool_name}'))
 
             # run the tool
@@ -181,7 +172,7 @@ class ReactAgent:
             
     def run(self, query: str, max_iterations: int = 10,) -> str:
                         
-        chat_history = ChatHistory(
+        self.chat_history = ChatHistory(
             [
                 create_single_text_Content(
                     text=self.system_prompt,
@@ -200,13 +191,11 @@ class ReactAgent:
             print(self.system_prompt)
             
         for i in range(max_iterations):
+            print()
             print('-'*40,f'iteration {i} ', '-'*40)
-            response = execute(self.client, messages=chat_history)   
+            response = execute(self.client, messages=self.chat_history)   
             
             # print thought and action
-            # print_in_color(text="Thought and Action", color='red', escape=True, bold=True) 
-            # print_in_color(text=str(response), color='red', escape=True) 
-            
             display(color_box(text=str(response), color='red',title='Thought and Action'))
             
             # parse the answer, if answer is present
@@ -216,14 +205,13 @@ class ReactAgent:
             
             # parse the actions
             tool_calls = extract_tag_content(str(response), "tool_call")
-            update_chat_history(history=chat_history, msg=response, role="model")
+            update_chat_history(history=self.chat_history, msg=response, role="model")
             
             # execute the actions and returns the observation
             if tool_calls.found:
                 
                 # execute the function, returned results are observations
                 observations = self.process_tool_calls(tool_calls.content)
-                # print_in_color(text=f"Observation", color='blue', bold=True)
                 
                 # print the observations
                 msg_type='observation_regular_printable'
@@ -237,14 +225,12 @@ class ReactAgent:
                         display(color_box(text=observation, color='blue',title='Observation'))
                         
                 # update the chat history with the newest observations
-                update_chat_history(history=chat_history, msg=observations, role="user", added_tag='observation', msg_type=msg_type)
+                update_chat_history(history=self.chat_history, msg=observations, role="user", added_tag='observation', msg_type=msg_type)
                 
             else: #if tool not found
                 temp_msg="\nObservations: tool not found, think again, choose another tool"
-                # print_in_color(text=f"{temp_msg}", color='blue', bold=True)
                 display(color_box(text=temp_msg, color='blue',title='Observation'))
-                update_chat_history(history=chat_history, msg=temp_msg, role="user", added_tag='observation')
+                update_chat_history(history=self.chat_history, msg=temp_msg, role="user", added_tag='observation')
             time.sleep(2)
                         
         print("max iterations reached", '!'*10)
-        return chat_history

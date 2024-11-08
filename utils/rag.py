@@ -80,7 +80,7 @@ class RAG:
             text=""
             # return the top 3 chunks connected together
             for d in documents[:num_top_chunks]:
-                text+=d.page_content
+                text+=d.page_content+"\n\n"
             return text
         
         elif method=='all':
