@@ -22,6 +22,8 @@ import ace_tools as tools; tools.display_dataframe_to_user(name="Reshaped Data",
 
 
 
+
+
 import pandas as pd
 
 # Example DataFrame with datetime columns
@@ -38,3 +40,26 @@ df['date_column2'] = pd.to_datetime(df['date_column2'])
 df['is_later'] = df['date_column1'] > df['date_column2']
 
 print(df)
+
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Example DataFrame
+df = pd.DataFrame({
+    'col1': [1, 2, 3, 4, 5],
+    'col2': [5, 4, 3, 2, 1],
+    'col3': [10, 20, 30, 40, 50],
+    'target': [5, 10, 15, 20, 25]
+})
+
+# Calculate the correlation matrix
+correlation = df[['col1', 'col2', 'col3', 'target']].corr()
+
+# Create a heatmap to visualize the correlation matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(correlation, annot=True, cmap='coolwarm', fmt='.2f', cbar=True)
+
+# Display the plot
+plt.show()
